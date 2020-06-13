@@ -1,8 +1,8 @@
-1.环境  python3
+1. 环境  python3
 ```pip install pandas,numpy,json,pillow,matplotlib```
-2.运行方式
+2. 运行方式
 ```python demo.py```
-3.数据文档
+3. 数据文档
 
 define_ab.json————保存收支类别信息
 income_expenditure.csv————保存收支明细
