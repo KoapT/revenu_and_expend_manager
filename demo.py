@@ -15,11 +15,11 @@ plt.rcParams['font.sans-serif'] = ['SimHei', 'Times New Roman']
 
 def pie_chart(name, labels, values):
     '''
-    画饼图
-    :param name:
-    :param labels:
-    :param values:
-    :return:
+    根据年度或者月度收支汇总和类别，画饼图
+    :param name:饼图名字
+    :param labels:收支明细类别
+    :param values:收支明细
+    :return: image->np.array
     '''
     def my_label(pct, allvals):
         absolute = pct / 100. * np.sum(allvals)
@@ -44,12 +44,12 @@ def pie_chart(name, labels, values):
 
 def histogram(year, months, earns, pays):
     '''
-    画直方图
-    :param year:
-    :param months:
-    :param earns:
-    :param pays:
-    :return:
+    根据年度汇总绘制每个月收支的直方图
+    :param year:年度
+    :param months:月份数
+    :param earns:每月收入汇总
+    :param pays:每月支出汇总
+    :return:image->np.array
     '''
     plt.bar(x=months, height=earns, label='收入', color='steelblue', alpha=0.8)
     plt.bar(x=months, height=pays, label='支出', color='indianred', alpha=0.8)
@@ -73,6 +73,10 @@ def histogram(year, months, earns, pays):
 
 
 class PersonalFinancialManager(object):
+    '''
+    个人收支管理系统后台
+    包括收支类别定义、记账、月度汇总、年度汇总功能。
+    '''
     def __init__(self):
         self.file = './income_expenditure.csv'
         self.define_file = './define_ab.json'
@@ -92,12 +96,22 @@ class PersonalFinancialManager(object):
             self.data = pd.DataFrame(columns=['收/支', '类别', '日期', '金额', '备注'])
 
     def define(self, flag, key, name):
+        '''
+        定义收支类别
+        :param flag: 收/支
+        :param key: 收支类别编码
+        :param name: 收支类别名字
+        '''
         if flag == 0:
             self.a[key] = name
         elif flag == 1:
             self.b[key] = name
 
     def save_define(self):
+        '''
+        将收支类别写入文件
+        :return:
+        '''
         define_dict = {'A': self.a, 'B': self.b}
         try:
             jsObj = json.dumps(define_dict)
@@ -109,6 +123,12 @@ class PersonalFinancialManager(object):
             return False
 
     def write(self, inputs):
+        '''
+        记账
+        :param inputs: 记账信息
+        :return:  ret： 记账是否成功
+                  tip： 提示信息
+        '''
         assert isinstance(inputs, str)
         tip1 = '请按照\'类别编码，发生日期，金额，备注\'的格式输入，中间用英文逗号隔开！例如：a1,2020-6-1,20.5,冰淇淋'
         tip2 = '请输入已定义的正确类别编码！例如：a1'
@@ -145,7 +165,25 @@ class PersonalFinancialManager(object):
         self.data.loc[self.data.shape[0], :] = inputs
         return True, '输入完成！'
 
+    def delete(self,index):
+        '''
+        根据索引删除某些记录
+        :param index:
+        :return:
+        '''
+        tip = '输入要删除的索引，以英文逗号隔开！'
+        try:
+            index_list = list(map(lambda x: int(x), index.split(',')))
+        except:
+            return False,tip
+        self.data.drop(index_list, inplace=True, axis=0)
+        return True,'OK'
+
     def save(self):
+        '''
+        写入当前账本信息
+        :return:  成功/失败
+        '''
         self.data.sort_values(by=['日期', '类别'], ascending=[True, True], inplace=True)
         try:
             self.data.to_csv(self.file, index=False)
@@ -154,6 +192,15 @@ class PersonalFinancialManager(object):
             return False
 
     def summary(self, month):
+        '''
+        月度汇总
+        :param month: 月份
+        :return: ret， 是否成功
+                month_summary, 月度汇总
+                month_data, 月度明细
+                pay_chart, 支出的饼图
+                earn_chart， 收入的饼图
+        '''
         month_raw = month
         tip = '请按照\'年-月\'的格式输入月份！例如：2020-6'
         tip1 = '该月没有记录'
@@ -180,6 +227,14 @@ class PersonalFinancialManager(object):
         return True, month_summary, month_data, pay_chart, earn_chart
 
     def yearly_summary(self, year):
+        '''
+        年度汇总统计
+        :param year: 年份
+        :return: ret， 是否成功
+                 pay_chart, 支出的饼图
+                 earn_chart, 收入的饼图
+                 months_his, 每月收支的直方图
+        '''
         year_raw = year
         tip1 = '请输入正确的年份数字！'
         tip2 = '该年没有数据！'
@@ -335,11 +390,22 @@ class record_page(object):
         self.root = Tk()
         self.root.title('记一笔账')
         self.root.geometry("500x500+750+300")
-        Label(self.root, text="输入收支明细, 例如：b1,2020-6-1,20.5,冰淇淋").grid(row=0, column=0)
-        self.input_detail = Text(self.root, width=100, height=1)
-        self.input_detail.grid(row=1, column=0, rowspan=10, columnspan=10)
-        Button(self.root, text="确定", command=self.reopen).grid(row=40, column=0, rowspan=2)
-        Button(self.root, text="返回", command=self.go_homepage).grid(row=40, column=2, rowspan=3)
+        self.sb = Scrollbar(self.root)
+        self.sb.pack(side=RIGHT, fill=Y)
+        Label(self.root,
+              text="输入收支明细, 例如：b1,2020-6-1,20.5,冰淇淋 \n输入流水的索引(英文逗号隔开)点击删除可以删除多条记录"
+              ).pack()
+        self.input_detail = Text(self.root, width=40, height=1)
+        self.input_detail.pack()
+        Button(self.root, text="写入", command=self.reopen).pack()
+        Button(self.root, text="删除", command=self.delete).pack()
+        Button(self.root, text="返回", command=self.go_homepage).pack()
+        Label(self.root, text="流水显示").pack()
+        self.text = Text(self.root, width=80, height=40,yscrollcommand=self.sb.set)
+        self.text.insert(1.0,self.pfm.data)
+        self.text.pack()
+        self.sb.config(command=self.text.yview)
+
         self.root.mainloop()
 
     def go_homepage(self):
@@ -348,6 +414,17 @@ class record_page(object):
 
     def reopen(self):
         self.record()
+        self.root.destroy()
+        self.__init__()
+
+    def delete(self):
+        src = self.input_detail.get(1.0, END).strip()
+        ret,tip = self.pfm.delete(src)
+        if ret:
+            self.pfm.save()
+            tkinter.messagebox.showinfo(title=None, message=tip)
+        else:
+            tkinter.messagebox.showerror(title='错误：', message=tip)
         self.root.destroy()
         self.__init__()
 
