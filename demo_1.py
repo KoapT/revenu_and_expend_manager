@@ -38,9 +38,9 @@ def pie_chart(name, labels, values):
     canvas = FigureCanvasAgg(plt.gcf())
     canvas.draw()
     w,h = canvas.get_width_height()
-    img = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8)
-    img.shape = (w, h, 4)
-    img = np.roll(img, 3, axis=2)
+    img = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8) # 得到一维向量
+    img.shape = (w, h, 4) # 相当于reshape
+    img = np.roll(img, 3, axis=2) # 把ARGB换成RGBA, 在第三个维度上(axis=2)，向前滚3次：ARGB->BARG->GBAR->RGBA
     img = Image.frombytes("RGBA", (w, h), img.tostring())
     plt.close()
     return img
