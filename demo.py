@@ -37,8 +37,12 @@ def pie_chart(name, labels, values):
     plt.title(name)
     canvas = FigureCanvasAgg(plt.gcf())
     canvas.draw()
+    w,h = canvas.get_width_height()
+    img = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8) # 得到一维向量
+    img.shape = (w, h, 4) # 相当于reshape
+    img = np.roll(img, 3, axis=2) # 把ARGB换成RGBA, 在第三个维度上(axis=2)，向前滚3次：ARGB->BARG->GBAR->RGBA
+    img = Image.frombytes("RGBA", (w, h), img.tostring())
     plt.close()
-    img = np.array(canvas.renderer.buffer_rgba())
     return img
 
 
@@ -67,8 +71,12 @@ def histogram(year, months, earns, pays):
     plt.legend()
     canvas = FigureCanvasAgg(plt.gcf())
     canvas.draw()
+    w,h = canvas.get_width_height()
+    img = np.frombuffer(canvas.tostring_argb(), dtype=np.uint8)
+    img.shape = (w, h, 4)
+    img = np.roll(img, 3, axis=2)
+    img = Image.frombytes("RGBA", (w, h), img.tostring())
     plt.close()
-    img = np.array(canvas.renderer.buffer_rgba())
     return img
 
 
@@ -474,14 +482,14 @@ class month_summary_page(object):
         if ret:
             self.summary_tip = str(month_summary)
             self.detail_tip = str(month_data)
-            self.img_earn = ImageTk.PhotoImage(Image.fromarray(earn_chart))
-            label_img = Label(self.root, image=self.img_earn)
-            label_img.grid(row=5, column=50, columnspan=1)
-            self.img_pay = ImageTk.PhotoImage(Image.fromarray(pay_chart))
-            label_img = Label(self.root, image=self.img_pay)
-            label_img.grid(row=5, column=60, columnspan=1)
             self.result_data_Text.delete(1.0, END)
             self.result_data_Text.insert(1.0, self.summary_tip)
+            self.img_earn = ImageTk.PhotoImage(earn_chart)
+            label_img = Label(self.root, image=self.img_earn)
+            label_img.grid(row=5, column=50, columnspan=1)
+            self.img_pay = ImageTk.PhotoImage(pay_chart)
+            label_img = Label(self.root, image=self.img_pay)
+            label_img.grid(row=5, column=60, columnspan=1)
         else:
             tip = month_summary
             tkinter.messagebox.showerror(title=None, message=tip)
@@ -517,13 +525,13 @@ class year_summary_page(object):
         month = self.input_detail.get().strip()
         ret,pay_chart, earn_chart,his = self.pfm.yearly_summary(month)
         if ret:
-            self.img_earn = ImageTk.PhotoImage(Image.fromarray(earn_chart))
+            self.img_earn = ImageTk.PhotoImage(earn_chart)
             label_img = Label(self.root, image=self.img_earn)
             label_img.place(relx=.1,rely=0)
-            self.img_pay = ImageTk.PhotoImage(Image.fromarray(pay_chart))
+            self.img_pay = ImageTk.PhotoImage(pay_chart)
             label_img = Label(self.root, image=self.img_pay)
             label_img.place(relx=.5,rely=0)
-            self.img_his = ImageTk.PhotoImage(Image.fromarray(his))
+            self.img_his = ImageTk.PhotoImage(his)
             label_img = Label(self.root, image=self.img_his)
             label_img.place(relx=.1,rely=.5)
         else:
